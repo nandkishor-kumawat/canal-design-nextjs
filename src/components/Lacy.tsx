@@ -4,6 +4,8 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import React from "react";
+import { Label } from "./ui/label";
+import { Input } from "./ui/input";
 
 const formSchema = z.object({
   discharge: z.string()
@@ -30,6 +32,7 @@ export default function Lacy() {
 
   const [isCalculated, setIsCalculated] = React.useState(false);
   const [designValues, setValues] = React.useState({
+    siltFactor:0,
     velocity: 0,
     hydraulicMeanRadius: 0,
     area: 0,
@@ -44,48 +47,52 @@ export default function Lacy() {
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     const { discharge, diameter: d } = data;
     const Q = +discharge;
-    // let f = (+d ? +(1.76 * Math.sqrt(+d)).toFixed(2) : siltFactor) as number;
-    let f = +(1.76 * Math.sqrt(+d)).toFixed(2)
-    const V = +((Q * f ** 2 / 140) ** (1 / 6)).toFixed(2);
+
+    let f = 1.76 * Math.sqrt(+d)
+    setValue("siltFactor", f);
+
+    const V = (Q * f ** 2 / 140) ** (1 / 6);
     setValue("velocity", V);
 
-    const R = +(2.5 * V ** 2 / f).toFixed(2);
+    const R = 2.5 * (V ** 2) / f;
     setValue("hydraulicMeanRadius", R);
 
-    const A = +(Q / V).toFixed(2);
+    const A = Q / V;
     setValue("area", A);
 
-    const P = +(4.75 * Q ** 0.5).toFixed(2);
+    const P = 4.75 * Math.sqrt(Q);
     setValue("wettedPerimeter", P);
 
-    const S = +(f ** (5 / 3) / (3340 * Q ** (1 / 6))).toFixed(5);
+    const S = (f ** (5 / 3)) / (3340 * (Q ** (1 / 6)));
     setValue("bedSlope", S);
 
-    console.log(Math.round(1 / S / 100) * 100);
     setIsCalculated(true)
   }
 
-  console.log(errors)
 
   return (
-    <div className="container max-w-lg">
+    <div className="container max-w-lg p-5">
       <form action="" className="space-y-3" onSubmit={handleSubmit(onSubmit)}>
-        <div className="flex gap-2 justify-center flex-col">
-          <label htmlFor="discharge">Discharge: Q (cumec)</label>
-          <input type="text" id="discharge" {...register("discharge")} />
+
+        <div className="grid w-full max-w-sm items-center gap-2">
+          <Label htmlFor="discharge">Discharge: Q (cumec)</Label>
+          <Input type="text" id="discharge" {...register("discharge")} />
         </div>
+
         {errors.discharge && <p className="text-red-500">{errors.discharge.message}</p>}
+
         <div className="flex gap-2">
-          <div className="flex gap-2 justify-center flex-col flex-1">
-            <label htmlFor="diameter">Diameter: d (mm)</label>
-            <input type="text" id="diameter" {...register("diameter")} />
+          <div className="grid w-full max-w-sm items-center gap-2">
+            <Label htmlFor="diameter">Diameter: d (mm)</Label>
+            <Input type="text" id="diameter" {...register("diameter")} />
           </div>
+
           {/* <div className="flex items-center mx-3 border-r border-r-gray-300 relative">
             <p className="bg-white text-gray-400 absolute -left-3">OR</p>
           </div>
           <div className="flex gap-2 justify-center flex-col flex-1">
-            <label htmlFor="siltFactor">Silt Factor: f</label>
-            <input type="text" id="siltFactor" {...register("siltFactor")} />
+            <Label htmlFor="siltFactor">Silt Factor: f</Label>
+            <Input type="text" id="siltFactor" {...register("siltFactor")} />
           </div> */}
         </div>
         {errors.diameter && <p className="text-red-500">{errors.diameter.message}</p>}
@@ -98,11 +105,12 @@ export default function Lacy() {
 
       {isCalculated && (
         <div className="flex gap-2 justify-center flex-col my-3">
-          <p>Velocity: V = {designValues.velocity}m/s</p>
-          <p>Hydraulic Mean Radius: R = {designValues.hydraulicMeanRadius}m</p>
-          <p>Area: A = {designValues.area}m<sup>2</sup></p>
-          <p>Wetted Perimeter: P = {designValues.wettedPerimeter}m</p>
-          <p>Bed Slope: S = {designValues.bedSlope} (1 in {Math.floor(1 / designValues.bedSlope / 100) * 100})</p>
+          <p>Silt Factor: f = {designValues.siltFactor.toFixed(2)}</p>
+          <p>Velocity: V = {designValues.velocity.toFixed(2)}m/s</p>
+          <p>Hydraulic Mean Radius: R = {designValues.hydraulicMeanRadius.toFixed(2)}m</p>
+          <p>Area: A = {designValues.area.toFixed(2)}m<sup>2</sup></p>
+          <p>Wetted Perimeter: P = {designValues.wettedPerimeter.toFixed(2)}m</p>
+          <p>Bed Slope: S = {designValues.bedSlope.toFixed(5)} (1 in {Math.floor(1 / designValues.bedSlope / 100) * 100})</p>
         </div>
       )}
     </div>
