@@ -51,7 +51,7 @@ export default function Lacy() {
     let f = 1.76 * Math.sqrt(+d)
     setValue("siltFactor", f);
 
-    const V = (Q * f ** 2 / 140) ** (1 / 6);
+    const V = (Q * (f ** 2) / 140) ** (1 / 6);
     setValue("velocity", V);
 
     const R = 2.5 * (V ** 2) / f;
