@@ -3,16 +3,20 @@
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import React from "react";
+import React, { useRef } from "react";
 import { Label } from "./ui/label";
-import { Input } from "./ui/input";
+import { NumberInput } from "./ui/input";
+import { AnimatePresence, delay, motion } from "framer-motion";
+import { roundTo, solveEquations } from "@/lib/utils";
 
 const formSchema = z.object({
   discharge: z.string()
     .refine((value) => !isNaN(parseFloat(value)), { message: "Enter a valid number" })
     .refine(value => (+value) > 0, { message: "Enter a positive number", }),
-  diameter: z.string().refine(value => (+value) > 0, { message: "Enter a positive number", }),
+  diameter: z.string().refine(value => (+value) > 0 && (+value) < 2.5, { message: "Enter a positive number", }),
   siltFactor: z.string().optional(),
+  bedSlopeH: z.string().refine(value => (+value) > 0, { message: "Enter a positive number", }).refine(value => (+value) <= 2.5, { message: "Enter a number less than 2.5", }),
+  bedSlopeV: z.string().refine(value => (+value) > 0, { message: "Enter a positive number", }).refine(value => (+value) <= 2.5, { message: "Enter a number less than 2.5", }),
 
 }).refine(data => data.diameter || data.siltFactor,
   {
@@ -27,92 +31,209 @@ export default function Lacy() {
     defaultValues: {
       discharge: "2.18",
       diameter: "0.73",
+      bedSlopeH: "1",
+      bedSlopeV: "1",
     }
   })
 
   const [isCalculated, setIsCalculated] = React.useState(false);
   const [designValues, setValues] = React.useState({
-    siltFactor:0,
+    siltFactor: 0,
     velocity: 0,
     hydraulicMeanRadius: 0,
     area: 0,
     wettedPerimeter: 0,
-    bedSlope: 0
+    bedSlope: 0,
+    scourDepth: 0,
+    depth: 0,
+    width: 0,
   })
 
   const setValue = (name: string, value: number) => {
     setValues(prev => ({ ...prev, [name]: value }))
   }
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    setIsCalculated(false);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
     const { discharge, diameter: d } = data;
     const Q = +discharge;
+    const f = roundTo(1.76 * Math.sqrt(+d), 1)
+    const V = roundTo((Q * (f ** 2) / 140) ** (1 / 6))
+    const R = roundTo(2.5 * (V ** 2) / f)
+    const A = roundTo(Q / V)
+    const P = roundTo(4.75 * Math.sqrt(Q))
+    const S = (f ** (5 / 3)) / (3340 * (Q ** (1 / 6)))
+    const scourDepth = roundTo(0.473 * Math.pow(Q / f, 1 / 3))
 
-    let f = 1.76 * Math.sqrt(+d)
-    setValue("siltFactor", f);
+    const sol = solveEquations(P, A, 1 / 2);
+    console.log(sol)
 
-    const V = (Q * (f ** 2) / 140) ** (1 / 6);
-    setValue("velocity", V);
-
-    const R = 2.5 * (V ** 2) / f;
-    setValue("hydraulicMeanRadius", R);
-
-    const A = Q / V;
-    setValue("area", A);
-
-    const P = 4.75 * Math.sqrt(Q);
-    setValue("wettedPerimeter", P);
-
-    const S = (f ** (5 / 3)) / (3340 * (Q ** (1 / 6)));
-    setValue("bedSlope", S);
+    setValues(prev => ({
+      ...prev,
+      siltFactor: f,
+      velocity: V,
+      hydraulicMeanRadius: R,
+      area: A,
+      wettedPerimeter: P,
+      bedSlope: S,
+      scourDepth: scourDepth,
+      depth: sol.y,
+      width: sol.B
+    }))
 
     setIsCalculated(true)
   }
 
+  const container = useRef<HTMLDivElement>(null);
+  const goodRef = useRef<HTMLButtonElement>(null);
+
+  // useGSAP((context, contextSafe) => {
+
+  //   // gsap.to(container.current, { x: -1000 });
+
+  //   const onClickGood = contextSafe!(() => {
+  //     gsap.from('.lacy-result > p', {
+  //       x: -1000,
+  //       // duration: 0.2,
+  //       stagger: 0.05,
+  //       ease: "power3.out",
+  //     });
+  //   });
+
+  //   goodRef.current!.addEventListener("click", onClickGood);
+
+  //   return () => {
+  //     goodRef.current!.removeEventListener("click", onClickGood);
+  //   };
+
+  // });
 
   return (
-    <div className="container max-w-lg p-5">
+    <div className="w-full max-w-md" id="lacy">
+      <h1 className="text-2xl mb-3 text-indigo-900">Lacy&apos;s Theory</h1>
       <form action="" className="space-y-3" onSubmit={handleSubmit(onSubmit)}>
 
-        <div className="grid w-full max-w-sm items-center gap-2">
+        <div className="flex gap-2 justify-between items-center">
           <Label htmlFor="discharge">Discharge: Q (cumec)</Label>
-          <Input type="text" id="discharge" {...register("discharge")} />
+          <NumberInput id="discharge" {...register("discharge")} />
         </div>
 
         {errors.discharge && <p className="text-red-500">{errors.discharge.message}</p>}
 
-        <div className="flex gap-2">
-          <div className="grid w-full max-w-sm items-center gap-2">
-            <Label htmlFor="diameter">Diameter: d (mm)</Label>
-            <Input type="text" id="diameter" {...register("diameter")} />
-          </div>
-
-          {/* <div className="flex items-center mx-3 border-r border-r-gray-300 relative">
-            <p className="bg-white text-gray-400 absolute -left-3">OR</p>
-          </div>
-          <div className="flex gap-2 justify-center flex-col flex-1">
-            <Label htmlFor="siltFactor">Silt Factor: f</Label>
-            <Input type="text" id="siltFactor" {...register("siltFactor")} />
-          </div> */}
+        <div className="flex gap-2 justify-between items-center">
+          <Label htmlFor="diameter">Diameter: d (mm)</Label>
+          <NumberInput id="diameter" {...register("diameter")} />
         </div>
         {errors.diameter && <p className="text-red-500">{errors.diameter.message}</p>}
-        <button className="relative inline-flex items-center justify-center p-0.5 mb-2 me-2 overflow-hidden text-sm font-medium text-gray-900 rounded-lg group bg-gradient-to-br from-cyan-500 to-blue-500 group-hover:from-cyan-500 group-hover:to-blue-500 hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-cyan-200 dark:focus:ring-cyan-800">
+
+        <div className="flex gap-2 justify-between items-center">
+          <Label htmlFor="bedSlope">Bed Slope: m (H:V)</Label>
+          <div className="flex gap-2 items-center">
+            <NumberInput id="bedSlopeH" {...register("bedSlopeH")} placeholder="H" className="w-10" />:
+            <NumberInput id="bedSlopeV" {...register("bedSlopeV")} placeholder="V" className="w-10" />
+          </div>
+        </div>
+        {errors.bedSlopeH && <p className="text-red-500">{errors.bedSlopeH.message}</p>}
+        {errors.bedSlopeV && <p className="text-red-500">{errors.bedSlopeV.message}</p>}
+
+
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          className="relative inline-flex items-center justify-center p-0.5 mb-2 me-2 overflow-hidden text-sm font-medium text-gray-900 rounded-lg group bg-gradient-to-br from-cyan-500 to-blue-500 group-hover:from-cyan-500 group-hover:to-blue-500 hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-cyan-200 dark:focus:ring-cyan-800">
           <span className="relative px-5 py-2.5 transition-all ease-in duration-75 bg-white dark:bg-gray-900 rounded-md group-hover:bg-opacity-0">
             Calculate
           </span>
-        </button>
+        </motion.button>
       </form>
 
-      {isCalculated && (
-        <div className="flex gap-2 justify-center flex-col my-3">
-          <p>Silt Factor: f = {designValues.siltFactor.toFixed(2)}</p>
-          <p>Velocity: V = {designValues.velocity.toFixed(2)}m/s</p>
-          <p>Hydraulic Mean Radius: R = {designValues.hydraulicMeanRadius.toFixed(2)}m</p>
-          <p>Area: A = {designValues.area.toFixed(2)}m<sup>2</sup></p>
-          <p>Wetted Perimeter: P = {designValues.wettedPerimeter.toFixed(2)}m</p>
-          <p>Bed Slope: S = {designValues.bedSlope.toFixed(5)} (1 in {Math.floor(1 / designValues.bedSlope / 100) * 100})</p>
-        </div>
-      )}
+
+      <AnimatePresence>
+        {isCalculated && (
+          <div key={'lacy'} className="flex gap-2 justify-center flex-col my-3 lacy-result">
+
+            <motion.h2
+              initial={{ scale: 0, x: 0 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0 }}
+              className='text-2xl text-indigo-800 w-fit'>Result:</motion.h2>
+            <motion.p
+              initial={{ x: -1000 }}
+              animate={{ x: 0 }}
+              transition={{ delay: 0 }}
+              exit={{ x: 1000 }}
+            >
+              Silt Factor: f = {designValues.siltFactor}
+            </motion.p>
+            <motion.p
+              initial={{ x: -1000 }}
+              animate={{ x: 0 }}
+              transition={{ delay: 0.05 }}
+              exit={{ x: 1000 }}
+            >
+              Velocity: V = {designValues.velocity}m/s
+            </motion.p>
+            <motion.p
+              initial={{ x: -1000 }}
+              animate={{ x: 0 }}
+              transition={{ delay: 0.15 }}
+              exit={{ x: 1000 }}
+            >
+              Area: A = {designValues.area}m<sup>2</sup>
+            </motion.p>
+            <motion.p
+              initial={{ x: -1000 }}
+              animate={{ x: 0 }}
+              transition={{ delay: 0.2 }}
+              exit={{ x: 1000 }}
+            >
+              Wetted Perimeter: P = {designValues.wettedPerimeter}m
+            </motion.p>
+            <motion.p
+              initial={{ x: -1000 }}
+              animate={{ x: 0 }}
+              transition={{ delay: 0.1 }}
+              exit={{ x: 1000 }}
+            >
+              Hydraulic Mean Radius: R = {designValues.hydraulicMeanRadius}m
+            </motion.p>
+            <motion.p
+              initial={{ x: -1000 }}
+              animate={{ x: 0 }}
+              transition={{ delay: 0.25 }}
+              exit={{ x: 1000 }}
+            >
+              Bed Slope: S = {designValues.bedSlope.toFixed(5)} (1 in {Math.floor(1 / designValues.bedSlope)})
+            </motion.p>
+            <motion.p
+              initial={{ x: -1000 }}
+              animate={{ x: 0 }}
+              transition={{ delay: 0.3 }}
+              exit={{ x: 1000 }}
+            >
+              Scour depth: R<sub>r</sub> = {designValues.scourDepth}m
+            </motion.p>
+            <motion.p
+              initial={{ x: -1000 }}
+              animate={{ x: 0 }}
+              transition={{ delay: 0.3 }}
+              exit={{ x: 1000 }}
+            >
+              Depth: D = {designValues.depth}m
+            </motion.p>
+            <motion.p
+              initial={{ x: -1000 }}
+              animate={{ x: 0 }}
+              transition={{ delay: 0.3 }}
+              exit={{ x: 1000 }}
+            >
+              Width: B = {designValues.width}m
+            </motion.p>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   )
 }
