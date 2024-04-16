@@ -16,6 +16,7 @@ export default function Baneer() {
             ease: "power3.out",
             duration: 0.25,
             scale: 1,
+            delay: 0.5
         })
     })
 

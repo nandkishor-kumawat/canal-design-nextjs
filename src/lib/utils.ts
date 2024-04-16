@@ -16,7 +16,7 @@ export const kutterVelocity = ({ n, S, R }: { n: number, S: number, R: number })
 export const roundTo = (num: number, places: number = 2) => +num.toFixed(places);
 
 
-export function solveEquations(P: number, A: number, m: number) {
+export const solveEquations = (P: number, A: number, m: number) => {
   // Calculate coefficients of the quadratic equation
   const a = 2 * Math.sqrt(1 + m ** 2)
   let c = -A;
@@ -49,4 +49,8 @@ export function solveEquations(P: number, A: number, m: number) {
   }
 
   return nonNegativeRoots[0];
+}
+
+export const getTrialDepth = (discharge: number) => {
+  return discharge < 20 ? 1 : discharge < 40 ? 2 : discharge < 80 ? 2.5 : discharge <= 100 ? 3 : 3.5;
 }

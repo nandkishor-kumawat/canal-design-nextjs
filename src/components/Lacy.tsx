@@ -8,15 +8,14 @@ import { Label } from "./ui/label";
 import { NumberInput } from "./ui/input";
 import { AnimatePresence, delay, motion } from "framer-motion";
 import { roundTo, solveEquations } from "@/lib/utils";
+import { ErrorP } from "./kennedy";
 
 const formSchema = z.object({
-  discharge: z.string()
-    .refine((value) => !isNaN(parseFloat(value)), { message: "Enter a valid number" })
-    .refine(value => (+value) > 0, { message: "Enter a positive number", }),
-  diameter: z.string().refine(value => (+value) > 0 && (+value) < 2.5, { message: "Enter a positive number", }),
-  siltFactor: z.string().optional(),
-  bedSlopeH: z.string().refine(value => (+value) > 0, { message: "Enter a positive number", }).refine(value => (+value) <= 2.5, { message: "Enter a number less than 2.5", }),
-  bedSlopeV: z.string().refine(value => (+value) > 0, { message: "Enter a positive number", }).refine(value => (+value) <= 2.5, { message: "Enter a number less than 2.5", }),
+  discharge: z.number({invalid_type_error: "Enter discharge"}).positive(),
+  diameter: z.number({invalid_type_error: "Enter diameter"}).positive().max(2.36, { message: "Enter diameter less than 2.36" }),
+  siltFactor: z.number({invalid_type_error: "Enter silt factor"}).optional(),
+  bedSlopeH: z.number({invalid_type_error: "Enter bed slope H"}).positive().max(2.5, { message: "Enter bed slope less than 2.5" }),
+  bedSlopeV: z.number({invalid_type_error: "Enter bed slope V"}).positive().max(2.5, { message: "Enter bed slope less than 2.5" }),
 
 }).refine(data => data.diameter || data.siltFactor,
   {
@@ -29,10 +28,10 @@ export default function Lacy() {
   const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      discharge: "2.18",
-      diameter: "0.73",
-      bedSlopeH: "1",
-      bedSlopeV: "1",
+      discharge: 2.18,
+      diameter: 0.73,
+      bedSlopeH: 1,
+      bedSlopeV: 1,
     }
   })
 
@@ -112,31 +111,31 @@ export default function Lacy() {
 
   return (
     <div className="w-full max-w-md" id="lacy">
-      <h1 className="text-2xl mb-3 text-indigo-900">Lacy&apos;s Theory</h1>
+      <h1 className="text-2xl mb-3 text-green-500">Lacy&apos;s Theory</h1>
       <form action="" className="space-y-3" onSubmit={handleSubmit(onSubmit)}>
 
         <div className="flex gap-2 justify-between items-center">
           <Label htmlFor="discharge">Discharge: Q (cumec)</Label>
-          <NumberInput id="discharge" {...register("discharge")} />
+          <NumberInput id="discharge" {...register("discharge", { valueAsNumber: true })} maxLength={5} />
         </div>
 
-        {errors.discharge && <p className="text-red-500">{errors.discharge.message}</p>}
+        {errors.discharge && <ErrorP>{errors.discharge.message}</ErrorP>}
 
         <div className="flex gap-2 justify-between items-center">
           <Label htmlFor="diameter">Diameter: d (mm)</Label>
-          <NumberInput id="diameter" {...register("diameter")} />
+          <NumberInput id="diameter" {...register("diameter", { valueAsNumber: true })} maxLength={4} />
         </div>
-        {errors.diameter && <p className="text-red-500">{errors.diameter.message}</p>}
+        {errors.diameter && <ErrorP>{errors.diameter.message}</ErrorP>}
 
         <div className="flex gap-2 justify-between items-center">
           <Label htmlFor="bedSlope">Bed Slope: m (H:V)</Label>
-          <div className="flex gap-2 items-center">
-            <NumberInput id="bedSlopeH" {...register("bedSlopeH")} placeholder="H" className="w-10" />:
-            <NumberInput id="bedSlopeV" {...register("bedSlopeV")} placeholder="V" className="w-10" />
+          <div className="flex items-center relative z-10 bg-slate-800 after:border-b-2 border-b-[rgb(122 136 164)] after:w-full after:bottom-0 after:z-[-1] after:absolute">
+            <NumberInput id="bedSlopeH" {...register("bedSlopeH", { valueAsNumber: true })} placeholder="H" className="w-10" maxLength={3} />:
+            <NumberInput id="bedSlopeV" {...register("bedSlopeV", { valueAsNumber: true })} placeholder="V" className="w-10" maxLength={3} />
           </div>
         </div>
-        {errors.bedSlopeH && <p className="text-red-500">{errors.bedSlopeH.message}</p>}
-        {errors.bedSlopeV && <p className="text-red-500">{errors.bedSlopeV.message}</p>}
+        {errors.bedSlopeH && <ErrorP>{errors.bedSlopeH.message}</ErrorP>}
+        {errors.bedSlopeV && <ErrorP>{errors.bedSlopeV.message}</ErrorP>}
 
 
         <motion.button
@@ -157,7 +156,7 @@ export default function Lacy() {
               initial={{ scale: 0, x: 0 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0 }}
-              className='text-2xl text-indigo-800 w-fit'>Result:</motion.h2>
+              className='text-2xl text-green-500 w-fit'>Result:</motion.h2>
             <motion.p
               initial={{ x: -1000 }}
               animate={{ x: 0 }}

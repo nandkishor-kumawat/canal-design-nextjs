@@ -29,8 +29,8 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.canal-design",
-      "longDescription": "",
+      "identifier": "com.Nandkishor.canal-design",
+      "longDescription": "Design canal by Kennedy's and Lacy's theory",
       "macOS": {
         "entitlements": null,
         "exceptionDomain": "",
@@ -56,12 +56,11 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 600,
         "resizable": true,
         "title": "Canal Design",
-        "width": 800,
         "minHeight": 600,
-        "minWidth": 800
+        "minWidth": 800,
+        "maximized": true
       }
     ]
   }

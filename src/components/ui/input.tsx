@@ -28,12 +28,13 @@ const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
       <Input
         type="text"
         className={cn(
-          "w-20 px-0 text-center bg-transparent rounded-none border-0 border-b-2 border-b-[rgb(122 136 164)] focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-b-2 focus:border-b-[#fee620]",
+          "w-20 px-0 text-center bg-slate-800 rounded-none border-0 border-b-2 border-b-[rgb(122 136 164)] focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-b-2 focus:border-b-[#00ff00]",
           className
         )}
         ref={ref}
         onInput={e => e.currentTarget.value = e.currentTarget.value.replace(/[^0-9.]/g, '')}
         {...props}
+        autoComplete="off"
       />
     )
   }

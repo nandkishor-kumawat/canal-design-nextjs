@@ -1,5 +1,5 @@
 "use client"
-import { kutterVelocity, roundTo } from '@/lib/utils';
+import { getTrialDepth, kutterVelocity, roundTo } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React from 'react'
 import { useForm } from 'react-hook-form';
@@ -9,22 +9,29 @@ import { NumberInput } from './ui/input';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const formSchema = z.object({
-    discharge: z.string().refine((value) => !isNaN(parseFloat(value)), { message: "Enter a valid number" }).refine(value => (+value) > 0, { message: "Enter a positive number", }),
-    criticalVelocityRatio: z.string().refine((value) => !isNaN(parseFloat(value)), { message: "Enter a valid number" }).refine(value => (+value) > 0, { message: "Enter a positive number", }).refine(value => (+value) < 1.5, { message: "Enter a number less than 1.5", }),
-    Slope: z.string().refine((value) => !isNaN(parseFloat(value)), { message: "Enter a valid number" }).refine(value => (+value) > 0, { message: "Enter a positive number", }),
-    rugosity: z.string().refine((value) => !isNaN(parseFloat(value)), { message: "Enter a valid number" }).refine(value => (+value) > 0, { message: "Enter a positive number", }),
+    discharge: z.number({ invalid_type_error: "Enter discharge" }).positive(),
+    criticalVelocityRatio: z.number({ invalid_type_error: "Enter critical velocity ratio" }).positive().max(1.5),
+    Slope: z.number({ invalid_type_error: "Enter slope" }).positive().min(2000).max(5000),
+    rugosity: z.number({ invalid_type_error: "Enter rugosity" }).positive(),
+    bedSlopeH: z.number({ invalid_type_error: "Enter bed slope H" }).positive().max(2.5),
+    bedSlopeV: z.number({ invalid_type_error: "Enter bed slope V" }).positive().max(2.5),
 })
 
+export const ErrorP = ({ children }: { children: React.ReactNode }) => {
+    return <p className="text-yellow-400 text-sm">{children}</p>
+}
 
 export default function Kennedy() {
 
     const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            discharge: "51",
-            criticalVelocityRatio: "1.1",
-            Slope: "4000",
-            rugosity: "0.023",
+            discharge: 51,
+            criticalVelocityRatio: 1.1,
+            Slope: 4000,
+            rugosity: 0.023,
+            bedSlopeH: 1,
+            bedSlopeV: 1,
         }
     })
 
@@ -53,17 +60,16 @@ export default function Kennedy() {
         const R = roundTo(A / P);
         const V = roundTo(kutterVelocity({ n, S, R }), 3);
         const m_r = roundTo(V / V0, 2);
-        console.log(m_r)
 
         const diff = +Math.abs(V - V0).toFixed(3);
-        // const diff = +Math.abs(m - m_r).toFixed(3);
-        // if (diff <= 0.018) {
-        if (m_r === m) {
-            return { Q, S: '1 in ' + 1 / S, m, n, y: roundTo(y), V0, A, B, P, R, V }
-        }
+        const result = { Q, S: '1 in ' + 1 / S, m, n, y: roundTo(y), V0, A, B, P, R, V };
+        console.table(result)
+        // if (m_r === 1) return result;
+        if (diff <= 0.018) return result;
         else {
             const d = 0.01
             let n_y = y - d;
+            if (n_y < 0) return result;
             if (V > V0) {
                 n_y = y + d;
             }
@@ -82,42 +88,48 @@ export default function Kennedy() {
 
         setIsCalculated(false);
         await new Promise(resolve => setTimeout(resolve, 0));
-        const result = calculate({ m, y: 1, Q, S, n })
+        let y = getTrialDepth(Q);
+        const result = calculate({ m, y, Q, S, n })
         console.table(result)
         setDesignValues(result);
         setIsCalculated(true);
     }
 
-    // useEffect(() => {
-    //     const a = Object.keys(errors);
-    //     if (!a.length) return;
-    //     alert(Object.values(errors).map(({ message }) => message).join('\n'))
-    // }, [errors])
 
     return (
         <div className="w-full max-w-md" id="kennedy">
-            <h1 className='text-2xl mb-3 text-indigo-900'>Kennedy&apos;s Theory</h1>
+            <h1 className='text-2xl mb-3 text-green-500'>Kennedy&apos;s Theory</h1>
             <form action="" className="space-y-3" onSubmit={handleSubmit(onSubmit)}>
                 <div className="flex gap-2 justify-between items-center">
                     <Label className='' htmlFor="discharge">Discharge: Q (cumec)</Label>
-                    <NumberInput id="discharge" {...register("discharge")} />
+                    <NumberInput id="discharge" {...register("discharge", { valueAsNumber: true })} maxLength={5} />
                 </div>
-                {errors.discharge && <p className="text-red-500 text-sm">{errors.discharge.message}</p>}
+                {errors.discharge && <ErrorP>{errors.discharge.message}</ErrorP>}
                 <div className="flex gap-2 justify-between items-center">
                     <Label className='' htmlFor="bedSlope">Slope: S (1 in )</Label>
-                    <NumberInput id="bedSlope" {...register("Slope")} />
+                    <NumberInput id="bedSlope" {...register("Slope", { valueAsNumber: true })} maxLength={4} />
                 </div>
-                {errors.Slope && <p className="text-red-500 text-sm">{errors.Slope.message}</p>}
+                {errors.Slope && <ErrorP>{errors.Slope.message}</ErrorP>}
                 <div className="flex gap-2 justify-between items-center">
                     <Label className='' htmlFor="cvr">CVR: m</Label>
-                    <NumberInput id="cvr" {...register("criticalVelocityRatio")} />
+                    <NumberInput id="cvr" {...register("criticalVelocityRatio", { valueAsNumber: true })} maxLength={3} />
                 </div>
-                {errors.criticalVelocityRatio && <p className="text-red-500 text-sm">{errors.criticalVelocityRatio.message}</p>}
+                {errors.criticalVelocityRatio && <ErrorP>{errors.criticalVelocityRatio.message}</ErrorP>}
                 <div className="flex gap-2 justify-between items-center">
                     <Label className='' htmlFor="rugosity">Rugosity: n</Label>
-                    <NumberInput id="rugosity" {...register("rugosity")} />
+                    <NumberInput id="rugosity" {...register("rugosity", { valueAsNumber: true })} maxLength={6} />
                 </div>
-                {errors.rugosity && <p className="text-red-500 text-sm">{errors.rugosity.message}</p>}
+                {errors.rugosity && <ErrorP>{errors.rugosity.message}</ErrorP>}
+
+                <div className="flex gap-2 justify-between items-center">
+                    <Label htmlFor="bedSlope">Bed Slope: m (H:V)</Label>
+                    <div className="flex items-center relative z-10 bg-slate-800 after:border-b-2 border-b-[rgb(122 136 164)] after:w-full after:bottom-0 after:z-[-1] after:absolute">
+                        <NumberInput id="bedSlopeH" {...register("bedSlopeH", { valueAsNumber: true })} placeholder="H" className="w-10" maxLength={3} />:
+                        <NumberInput id="bedSlopeV" {...register("bedSlopeV", { valueAsNumber: true })} placeholder="V" className="w-10" maxLength={3} />
+                    </div>
+                </div>
+                {errors.bedSlopeH && <ErrorP>{errors.bedSlopeH.message}</ErrorP>}
+                {errors.bedSlopeV && <ErrorP>{errors.bedSlopeV.message}</ErrorP>}
 
                 <motion.button
                     whileTap={{ scale: 0.9 }}
@@ -136,7 +148,7 @@ export default function Kennedy() {
                             initial={{ scale: 0, x: 0 }}
                             animate={{ scale: 1 }}
                             exit={{ scale: 0 }}
-                            className='text-2xl text-indigo-800 w-fit'>Result:</motion.h2>
+                            className='text-2xl text-green-500 w-fit'>Result:</motion.h2>
 
                         <motion.p
                             initial={{ x: -1000 }}

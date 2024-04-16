@@ -130,7 +130,8 @@
 
   body {
     @apply bg-background text-foreground overflow-x-hidden text-white;
-    background-color: rgba(87, 133, 174, 0.6);
+    /* background-color: rgba(87, 133, 174, 0.6); */
+    background-color: rgb(21 15 45);
     background-image: linear-gradient(45deg, rgba(92, 149, 219, 0.3) 20%, rgba(3, 153, 216, 0.4) 48%, rgba(24, 172, 214, 0.3) 75%, rgba(0, 212, 255, 0.4) 100%);
   }
 
