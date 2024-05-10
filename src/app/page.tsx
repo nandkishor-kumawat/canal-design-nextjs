@@ -29,7 +29,7 @@ export default function Home() {
   return (
     <main className="flex flex-col items-center justify-between" id="main">
       <div className="h-10 inline-flex items-center justify-center rounded-md bg-muted p-1 text-muted-foreground my-3">
-        <CButton method="lacy">Lacy&apos;s Theory</CButton>
+        <CButton method="lacy">Lacey&apos;s Theory</CButton>
         <CButton method="kennedy">Kennedy&apos;s Theory</CButton>
       </div>
       <AnimatePresence>

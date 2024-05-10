@@ -23,7 +23,7 @@ export const ErrorP = ({ children }: { children: React.ReactNode }) => {
 
 export default function Kennedy() {
 
-    const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof formSchema>>({
+    const { register, handleSubmit, formState: { errors }, getValues } = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             discharge: 51,
@@ -52,7 +52,7 @@ export default function Kennedy() {
     })
 
     const calculate = ({ m = 1, y, Q, S, n }: { m: number, y: number, Q: number, S: number, n: number }): typeof designValues => {
-        const m1 = 1;
+        const m1 = getValues('bedSlopeH') / getValues('bedSlopeV');
         const V0 = roundTo(0.55 * m * (y ** 0.64), 3);
         const A = roundTo(Q / V0);
         const B = roundTo(A / y - m1 * y);
@@ -122,7 +122,7 @@ export default function Kennedy() {
                 {errors.rugosity && <ErrorP>{errors.rugosity.message}</ErrorP>}
 
                 <div className="flex gap-2 justify-between items-center">
-                    <Label htmlFor="bedSlope">Bed Slope: m (H:V)</Label>
+                    <Label htmlFor="bedSlope">Side Slope: m (H:V)</Label>
                     <div className="flex items-center relative z-10 bg-slate-800 after:border-b-2 border-b-[rgb(122 136 164)] after:w-full after:bottom-0 after:z-[-1] after:absolute">
                         <NumberInput id="bedSlopeH" {...register("bedSlopeH", { valueAsNumber: true })} placeholder="H" className="w-10" maxLength={3} />:
                         <NumberInput id="bedSlopeV" {...register("bedSlopeV", { valueAsNumber: true })} placeholder="V" className="w-10" maxLength={3} />

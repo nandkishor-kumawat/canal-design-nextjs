@@ -25,7 +25,7 @@ const formSchema = z.object({
 )
 
 export default function Lacy() {
-  const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof formSchema>>({
+  const { register, handleSubmit, formState: { errors },getValues } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       discharge: 2.18,
@@ -65,8 +65,8 @@ export default function Lacy() {
     const P = roundTo(4.75 * Math.sqrt(Q))
     const S = (f ** (5 / 3)) / (3340 * (Q ** (1 / 6)))
     const scourDepth = roundTo(0.473 * Math.pow(Q / f, 1 / 3))
-
-    const sol = solveEquations(P, A, 1 / 2);
+    const m1 = getValues('bedSlopeH') / getValues('bedSlopeV');
+    const sol = solveEquations(P, A, m1);
     console.log(sol)
 
     setValues(prev => ({
@@ -111,7 +111,7 @@ export default function Lacy() {
 
   return (
     <div className="w-full max-w-md" id="lacy">
-      <h1 className="text-2xl mb-3 text-green-500">Lacy&apos;s Theory</h1>
+      <h1 className="text-2xl mb-3 text-green-500">Lacey&apos;s Theory</h1>
       <form action="" className="space-y-3" onSubmit={handleSubmit(onSubmit)}>
 
         <div className="flex gap-2 justify-between items-center">
@@ -128,7 +128,7 @@ export default function Lacy() {
         {errors.diameter && <ErrorP>{errors.diameter.message}</ErrorP>}
 
         <div className="flex gap-2 justify-between items-center">
-          <Label htmlFor="bedSlope">Bed Slope: m (H:V)</Label>
+          <Label htmlFor="bedSlope">Side Slope: m (H:V)</Label>
           <div className="flex items-center relative z-10 bg-slate-800 after:border-b-2 border-b-[rgb(122 136 164)] after:w-full after:bottom-0 after:z-[-1] after:absolute">
             <NumberInput id="bedSlopeH" {...register("bedSlopeH", { valueAsNumber: true })} placeholder="H" className="w-10" maxLength={3} />:
             <NumberInput id="bedSlopeV" {...register("bedSlopeV", { valueAsNumber: true })} placeholder="V" className="w-10" maxLength={3} />
